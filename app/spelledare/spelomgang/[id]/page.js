@@ -16,6 +16,9 @@ export default function SpelomgangPage() {
   const [deleteSpelareId, setDeleteSpelareId] = useState(null)
   const [spelareLoading, setSpelareLoading] = useState(false)
 
+  const [currentFragaIndex, setCurrentFragaIndex] = useState(0)
+  const [revealedIds, setRevealedIds] = useState(new Set())
+
   const loadData = useCallback(async () => {
     const res = await fetch(`/api/spelledare/spelomgangar/${id}`)
     if (res.status === 401) { router.push('/spelledare'); return }
@@ -149,123 +152,150 @@ export default function SpelomgangPage() {
           </div>
         )}
 
-        {/* Svarstabell – fas1, fas2, avslutad */}
-        {data.status !== 'skapad' && (
+        {/* Fas 1 – spelarlista med status */}
+        {data.status === 'fas1' && (
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="font-semibold text-gray-800">
-                {data.status === 'fas1' ? 'Svar hittills' : 'Spelarnas svar'}
-              </h2>
-              {data.status === 'fas1' && (
-                <span className="text-xs text-gray-400">{antalSpelare === 0 ? 'Väntar på spelare…' : `${antalSpelare} spelare`}</span>
-              )}
+              <h2 className="font-semibold text-gray-800">Spelare</h2>
+              <span className="text-xs text-gray-400">
+                {antalSpelare === 0 ? 'Väntar på spelare…' : `${antalSvarade} av ${antalSpelare} klara`}
+              </span>
             </div>
-
             {!data.spelare?.length ? (
-              <p className="text-gray-400 text-sm p-6">
-                {data.status === 'fas1' ? 'Inga spelare har anslutit än.' : 'Inga svar insamlade.'}
-              </p>
+              <p className="text-gray-400 text-sm p-6">Inga spelare har anslutit än.</p>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm min-w-max">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th className="text-left py-3 px-4 font-medium text-gray-600 whitespace-nowrap">Spelare</th>
-                      {data.status === 'fas1' && (
-                        <th className="text-left py-3 px-4 font-medium text-gray-600 whitespace-nowrap">Status</th>
+              <div className="divide-y divide-gray-100">
+                {data.spelare.map(s => (
+                  <div key={s.id} className="px-6 py-3 flex items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      {editSpelareId === s.id ? (
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <input
+                            value={editNamn}
+                            onChange={e => setEditNamn(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') saveSpelareNamn(s.id); if (e.key === 'Escape') setEditSpelareId(null) }}
+                            className="border border-violet-400 rounded px-2 py-1 text-sm w-32 focus:outline-none focus:ring-1 focus:ring-violet-500"
+                            autoFocus
+                          />
+                          <button onClick={() => saveSpelareNamn(s.id)} disabled={spelareLoading}
+                            className="text-xs text-white bg-violet-600 hover:bg-violet-700 px-2 py-1 rounded disabled:opacity-50">
+                            Spara
+                          </button>
+                          <button onClick={() => setEditSpelareId(null)}
+                            className="text-xs text-gray-500 hover:text-gray-700">Avbryt</button>
+                        </div>
+                      ) : (
+                        <span className="font-medium text-gray-800">{s.namn}</span>
                       )}
-                      {data.fragor?.map(f => (
-                        <th key={f.id} className="text-left py-3 px-4 font-medium text-gray-600 min-w-[180px]">
-                          {f.fraga}
-                        </th>
-                      ))}
-                      <th className="py-3 px-4" />
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50">
-                    {data.spelare.map(s => (
-                      <tr key={s.id} className="hover:bg-gray-50">
-                        {/* Namn – redigera inline */}
-                        <td className="py-2 px-4 font-medium text-gray-800 whitespace-nowrap">
-                          {editSpelareId === s.id ? (
-                            <div className="flex items-center gap-1.5">
-                              <input
-                                value={editNamn}
-                                onChange={e => setEditNamn(e.target.value)}
-                                onKeyDown={e => { if (e.key === 'Enter') saveSpelareNamn(s.id); if (e.key === 'Escape') setEditSpelareId(null) }}
-                                className="border border-violet-400 rounded px-2 py-1 text-sm w-32 focus:outline-none focus:ring-1 focus:ring-violet-500"
-                                autoFocus
-                              />
-                              <button onClick={() => saveSpelareNamn(s.id)} disabled={spelareLoading}
-                                className="text-xs text-white bg-violet-600 hover:bg-violet-700 px-2 py-1 rounded disabled:opacity-50">
-                                Spara
-                              </button>
-                              <button onClick={() => setEditSpelareId(null)}
-                                className="text-xs text-gray-500 hover:text-gray-700">
-                                Avbryt
-                              </button>
-                            </div>
-                          ) : (
-                            s.namn
-                          )}
-                        </td>
-
-                        {data.status === 'fas1' && (
-                          <td className="py-2 px-4">
-                            {s.har_svarat
-                              ? <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">Klar</span>
-                              : <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full font-medium">Svarar…</span>
-                            }
-                          </td>
-                        )}
-
-                        {data.fragor?.map(f => (
-                          <td key={f.id} className="py-2 px-4 text-gray-600 min-w-[180px] whitespace-normal break-words align-top">
-                            {s.svar?.[f.id] ?? <span className="text-gray-300">–</span>}
-                          </td>
-                        ))}
-
-                        {/* Åtgärder */}
-                        <td className="py-2 px-4 whitespace-nowrap">
-                          {deleteSpelareId === s.id ? (
-                            <div className="flex items-center gap-1.5">
-                              <span className="text-xs text-red-600">Radera?</span>
-                              <button onClick={() => deleteSpelare(s.id)} disabled={spelareLoading}
-                                className="text-xs text-white bg-red-600 hover:bg-red-700 px-2 py-1 rounded disabled:opacity-50">
-                                Ja
-                              </button>
-                              <button onClick={() => setDeleteSpelareId(null)}
-                                className="text-xs text-gray-500 hover:text-gray-700">
-                                Nej
-                              </button>
-                            </div>
-                          ) : editSpelareId !== s.id ? (
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => { setEditSpelareId(s.id); setEditNamn(s.namn); setDeleteSpelareId(null) }}
-                                className="text-xs text-violet-600 hover:underline">
-                                Redigera
-                              </button>
-                              <button
-                                onClick={() => { setDeleteSpelareId(s.id); setEditSpelareId(null) }}
-                                className="text-xs text-red-500 hover:underline">
-                                Radera
-                              </button>
-                            </div>
-                          ) : null}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </div>
+                    <div className="shrink-0">
+                      {s.har_svarat
+                        ? <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">Klar</span>
+                        : <span className="text-xs px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full font-medium">Svarar…</span>
+                      }
+                    </div>
+                    {editSpelareId !== s.id && (
+                      deleteSpelareId === s.id ? (
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="text-xs text-red-600">Radera?</span>
+                          <button onClick={() => deleteSpelare(s.id)} disabled={spelareLoading}
+                            className="text-xs text-white bg-red-600 hover:bg-red-700 px-2 py-1 rounded disabled:opacity-50">Ja</button>
+                          <button onClick={() => setDeleteSpelareId(null)}
+                            className="text-xs text-gray-500 hover:text-gray-700">Nej</button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button onClick={() => { setEditSpelareId(s.id); setEditNamn(s.namn); setDeleteSpelareId(null) }}
+                            className="text-xs text-violet-600 hover:underline">Redigera</button>
+                          <button onClick={() => { setDeleteSpelareId(s.id); setEditSpelareId(null) }}
+                            className="text-xs text-red-500 hover:underline">Radera</button>
+                        </div>
+                      )
+                    )}
+                  </div>
+                ))}
               </div>
-            )}
-
-            {data.status === 'avslutad' && (
-              <p className="text-center text-sm text-gray-400 px-6 py-4 border-t border-gray-50">Spelomgången är avslutad</p>
             )}
           </div>
         )}
+
+        {/* Svar fråga för fråga – fas2 och avslutad */}
+        {(data.status === 'fas2' || data.status === 'avslutad') && data.fragor?.length > 0 && (() => {
+          const fraga = data.fragor[currentFragaIndex]
+          const besvarade = data.spelare?.filter(s => s.svar?.[fraga.id]) ?? []
+          const allaNamnVisade = besvarade.length > 0 && besvarade.every(s => revealedIds.has(s.id))
+
+          function navigera(index) {
+            setCurrentFragaIndex(index)
+            setRevealedIds(new Set())
+          }
+
+          return (
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              {/* Frågenavigering */}
+              <div className="px-6 py-4 border-b border-gray-100 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
+                    Fråga {currentFragaIndex + 1} av {data.fragor.length}
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => navigera(currentFragaIndex - 1)}
+                      disabled={currentFragaIndex === 0}
+                      className="px-3 py-1.5 text-sm rounded-lg bg-gray-100 hover:bg-gray-200 disabled:opacity-30 transition-colors">
+                      ← Föregående
+                    </button>
+                    <button
+                      onClick={() => navigera(currentFragaIndex + 1)}
+                      disabled={currentFragaIndex === data.fragor.length - 1}
+                      className="px-3 py-1.5 text-sm rounded-lg bg-violet-600 hover:bg-violet-700 text-white disabled:opacity-30 transition-colors">
+                      Nästa →
+                    </button>
+                  </div>
+                </div>
+                <h2 className="text-base font-semibold text-gray-800 leading-snug">{fraga.fraga}</h2>
+              </div>
+
+              {/* Svar */}
+              {besvarade.length === 0 ? (
+                <p className="text-gray-400 text-sm px-6 py-4">Inga svar på den här frågan.</p>
+              ) : (
+                <div className="divide-y divide-gray-50">
+                  {besvarade.map(s => (
+                    <div key={s.id} className="px-6 py-5">
+                      <p className="text-gray-900 text-base leading-relaxed">{s.svar[fraga.id]}</p>
+                      <div className="mt-3">
+                        {revealedIds.has(s.id) ? (
+                          <span className="text-sm font-medium text-violet-600">{s.namn}</span>
+                        ) : (
+                          <button
+                            onClick={() => setRevealedIds(prev => new Set([...prev, s.id]))}
+                            className="text-xs text-gray-400 hover:text-violet-600 border border-gray-200 hover:border-violet-300 px-3 py-1 rounded-full transition-colors">
+                            Visa vem?
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Visa alla namn / avslutad-info */}
+              <div className="px-6 py-3 border-t border-gray-50 flex items-center justify-between">
+                {!allaNamnVisade && besvarade.length > 0 ? (
+                  <button
+                    onClick={() => setRevealedIds(new Set(data.spelare.map(s => s.id)))}
+                    className="text-xs text-gray-400 hover:text-violet-600 transition-colors">
+                    Visa alla namn
+                  </button>
+                ) : <span />}
+                {data.status === 'avslutad' && (
+                  <span className="text-xs text-gray-400">Spelomgången är avslutad</span>
+                )}
+              </div>
+            </div>
+          )
+        })()}
 
         {/* Radera spelomgång */}
         {!deleteConfirm ? (

@@ -175,8 +175,8 @@ export default function SpelomgangPage() {
                         <th className="text-left py-3 px-4 font-medium text-gray-600 whitespace-nowrap">Status</th>
                       )}
                       {data.fragor?.map(f => (
-                        <th key={f.id} className="text-left py-3 px-4 font-medium text-gray-600">
-                          <span className="block max-w-[200px] truncate" title={f.fraga}>{f.fraga}</span>
+                        <th key={f.id} className="text-left py-3 px-4 font-medium text-gray-600 min-w-[180px]">
+                          {f.fraga}
                         </th>
                       ))}
                       <th className="py-3 px-4" />
@@ -220,10 +220,8 @@ export default function SpelomgangPage() {
                         )}
 
                         {data.fragor?.map(f => (
-                          <td key={f.id} className="py-2 px-4 text-gray-600 max-w-[200px]">
-                            <span className="block truncate" title={s.svar?.[f.id] ?? ''}>
-                              {s.svar?.[f.id] ?? <span className="text-gray-300">–</span>}
-                            </span>
+                          <td key={f.id} className="py-2 px-4 text-gray-600 min-w-[180px] whitespace-normal break-words align-top">
+                            {s.svar?.[f.id] ?? <span className="text-gray-300">–</span>}
                           </td>
                         ))}
 
